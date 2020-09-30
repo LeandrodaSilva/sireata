@@ -10,6 +10,7 @@ import java.util.Calendar;
 import java.util.Date;
 
 import static junit.framework.Assert.assertEquals;
+import static junit.framework.Assert.assertSame;
 
 public class AtaBOTests {
     private final Date date = new Date();
@@ -151,12 +152,17 @@ public class AtaBOTests {
     }
 
     @Test
-    public void ataDAOSalvar1Test() throws SQLException {
+    public void ataDAOSalvar1Test() throws SQLException, CloneNotSupportedException {
+        this.ata.setLocal("local2");
         this.ataDAO.salvar(this.ata);
         Ata ata = this.ataDAO.buscarPorId(1);
+        ata.setLocal("local");
+        Ata ataClone = ata.clone();
+        this.ataDAO.salvar(ataClone);
 
         assertEquals("local completo", ata.getLocalCompleto());
         assertEquals(1, ata.getIdAta());
+        assertSame(ataClone.getLocal(), ata.getLocal());
     }
 
     @Test
