@@ -3,20 +3,19 @@ package br.edu.utfpr.dv.sireata.bo;
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
 import java.text.DecimalFormat;
+import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Date;
 import java.util.List;
+import java.util.Locale;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
+import br.edu.utfpr.dv.sireata.bo.base.BOBase;
+import br.edu.utfpr.dv.sireata.dao.*;
 import org.apache.commons.lang3.StringEscapeUtils;
 import org.apache.pdfbox.multipdf.PDFMergerUtility;
 
-import br.edu.utfpr.dv.sireata.dao.AnexoDAO;
-import br.edu.utfpr.dv.sireata.dao.AtaDAO;
-import br.edu.utfpr.dv.sireata.dao.AtaParticipanteDAO;
-import br.edu.utfpr.dv.sireata.dao.OrgaoDAO;
-import br.edu.utfpr.dv.sireata.dao.PautaDAO;
 import br.edu.utfpr.dv.sireata.model.Anexo;
 import br.edu.utfpr.dv.sireata.model.Ata;
 import br.edu.utfpr.dv.sireata.model.Pauta;
@@ -29,20 +28,10 @@ import br.edu.utfpr.dv.sireata.model.AtaReport;
 import br.edu.utfpr.dv.sireata.model.Orgao;
 import br.edu.utfpr.dv.sireata.model.ParticipanteReport;
 
-public class AtaBO {
-	
-	public Ata buscarPorId(int id) throws Exception{
-		try{
-			AtaDAO dao = new AtaDAO();
-			
-			return dao.buscarPorId(id);
-		}catch(Exception e){
-			Logger.getGlobal().log(Level.SEVERE, e.getMessage(), e);
-			
-			throw new Exception(e.getMessage());
-		}
-	}
-	
+public class AtaBO extends BOBase<Ata, AtaDAO> {
+	@Override
+	protected Class<AtaDAO> useDAOClass() { return AtaDAO.class; }
+
 	public Ata buscarPorNumero(int idOrgao, TipoAta tipo, int numero, int ano) throws Exception{
 		try{
 			AtaDAO dao = new AtaDAO();
@@ -247,7 +236,7 @@ public class AtaBO {
 			throw new Exception(e.getMessage());
 		}
 	}
-	
+
 	public boolean temComentarios(Ata ata) throws Exception{
 		return this.temComentarios(ata.getIdAta());
 	}
@@ -319,7 +308,7 @@ public class AtaBO {
 	public void bloquearComentarios(Ata ata) throws Exception{
 		this.bloquearComentarios(ata.getIdAta());
 	}
-	
+
 	public void bloquearComentarios(int idAta) throws Exception{
 		try{
 			AtaDAO dao = new AtaDAO();
@@ -335,7 +324,7 @@ public class AtaBO {
 	public AtaReport gerarAtaReport(Ata ata) throws Exception{
 		return this.gerarAtaReport(ata.getIdAta());
 	}
-	
+
 	public AtaReport gerarAtaReport(int idAta) throws Exception{
 		try{
 			PautaBO pbo = new PautaBO();
@@ -346,36 +335,57 @@ public class AtaBO {
 			AtaReport report = new AtaReport();
 			String texto;
 			DecimalFormat df = new DecimalFormat("00");
-			
+			String dataExtenso = this.getDataExtenso(ata.getData());
+			String local = StringEscapeUtils.escapeHtml4(ata.getLocalCompleto());
+			String ordinalExtenso = StringUtils.getExtensoOrdinal(ata.getNumero(), true);
+			String reuniaoTipo = (ata.getTipo() == TipoAta.ORDINARIA ? "ordinária" : "extraordinária");
+			String ano = String.valueOf(DateUtils.getYear(ata.getData()));
+			String orgaoNomeCompleto = StringEscapeUtils.escapeHtml4(orgao.getNomeCompleto());
+			String ataSecretarioNome = StringEscapeUtils.escapeHtml4(ata.getSecretario().getNome());
+			String designacao;
+			String designadoNome = StringEscapeUtils.escapeHtml4(ata.getPresidente().getNome());
+			String boldOpen = "<b>";
+			String boldClose = "</b>";
+
 			report.setNumero(df.format(ata.getNumero()) + "/" + String.valueOf(DateUtils.getYear(ata.getData())));
 			report.setDataHora(DateUtils.format(ata.getData(), "dd/MM/yyyy") + " às " + DateUtils.format(ata.getData(), "HH") + " horas" + (DateUtils.getMinute(ata.getData()) > 0 ? " e " + DateUtils.format(ata.getData(), "mm") + " minutos" : "") + ".");
 			report.setLocal(ata.getLocal());
 			report.setPresidente(ata.getPresidente().getNome());
 			report.setSecretario(ata.getSecretario().getNome());
+
+			if (ata.getPresidente().getIdUsuario() == orgao.getPresidente().getIdUsuario()) {
+				designacao = StringEscapeUtils.escapeHtml4(orgao.getDesignacaoPresidente()) + " ";
+			}else {
+				designacao = "professor(a) ";
+			}
 			
-			texto = this.getDataExtenso(ata.getData()) + ", no " + StringEscapeUtils.escapeHtml4(ata.getLocalCompleto()) + 
-					" realizou-se a " + StringUtils.getExtensoOrdinal(ata.getNumero(), true) +
-					" reunião " + (ata.getTipo() == TipoAta.ORDINARIA ? "ordinária" : "extraordinária") +
-					" de " + String.valueOf(DateUtils.getYear(ata.getData())) + " do(a) " +
-					StringEscapeUtils.escapeHtml4(orgao.getNomeCompleto()) + ", a qual foi conduzida pelo(a) " + 
-					(ata.getPresidente().getIdUsuario() == orgao.getPresidente().getIdUsuario() ? StringEscapeUtils.escapeHtml4(orgao.getDesignacaoPresidente()) + " " : "professor(a) ") +
-					StringEscapeUtils.escapeHtml4(ata.getPresidente().getNome()) + " e teve como pauta: <b>";
+			texto = dataExtenso + ", no " + local + " realizou-se a " + ordinalExtenso +
+					" reunião " + reuniaoTipo + " de " + ano + " do(a) " + orgaoNomeCompleto +
+					", a qual foi conduzida pelo(a) " + designacao + designadoNome +
+					" e teve como pauta: " + boldOpen;
 			
 			ata.setPauta(pbo.listarPorAta(idAta));
 			
-			for(int i = 1; i <= ata.getPauta().size(); i++){
-				texto += "(" + String.valueOf(i) + ") " + StringEscapeUtils.escapeHtml4(ata.getPauta().get(i - 1).getTitulo()) + (i == ata.getPauta().size() ? "." : "; ");
+			for(int i = 1; i <= ata.getPauta().size(); i++) {
+				String identificador = "(" + i + ") ";
+				String pautaTitulo = StringEscapeUtils.escapeHtml4(ata.getPauta().get(i - 1).getTitulo());
+				String pontoOuPontoEVirgula = (i == ata.getPauta().size() ? "." : "; ");
+
+				texto += identificador + pautaTitulo + pontoOuPontoEVirgula;
 			}
 			
-			texto += "</b> " + ata.getConsideracoesIniciais() + " ";
+			texto += boldClose + " " + ata.getConsideracoesIniciais() + " ";
 			
 			for(int i = 1; i <= ata.getPauta().size(); i++){
-				texto += "<b>(" + String.valueOf(i) + ") " + StringEscapeUtils.escapeHtml4(ata.getPauta().get(i - 1).getTitulo()) + 
-						"</b>, " + StringEscapeUtils.escapeHtml4(ata.getPauta().get(i - 1).getDescricao()) + " ";
+				String identificador = "(" + i + ") ";
+				String pautaTitulo = StringEscapeUtils.escapeHtml4(ata.getPauta().get(i - 1).getTitulo());
+				String pautaDescricao = StringEscapeUtils.escapeHtml4(ata.getPauta().get(i - 1).getDescricao());
+
+				texto += boldOpen + identificador + " " + pautaTitulo + boldClose + ", " + pautaDescricao + " ";
 			}
 			
-			texto += " Nada mais havendo a tratar, deu-se por encerrada a reunião, da qual eu, " +
-					StringEscapeUtils.escapeHtml4(ata.getSecretario().getNome()) + ", lavrei a presente ata que, após aprovada, vai assinada por mim e pelos demais presentes.";
+			texto += " Nada mais havendo a tratar, deu-se por encerrada a reunião, da qual eu, " + ataSecretarioNome +
+					", lavrei a presente ata que, após aprovada, vai assinada por mim e pelos demais presentes.";
 			
 			report.setTexto(texto);
 			
@@ -417,7 +427,7 @@ public class AtaBO {
 	public byte[] gerarAta(Ata ata) throws Exception{
 		return this.gerarAta(ata.getIdAta());
 	}
-	
+
 	public byte[] gerarAta(int idAta) throws Exception{
 		try{
 			AtaReport report = this.gerarAtaReport(idAta);
@@ -453,7 +463,7 @@ public class AtaBO {
 			throw new Exception(e.getMessage());
 		}
 	}
-	
+
 	public void publicar(Ata ata) throws Exception{
 		this.publicar(ata.getIdAta());
 	}
@@ -490,29 +500,30 @@ public class AtaBO {
 		}
 	}
 	
-	private String getDataExtenso(Date data){
+	private String getDataExtenso(Date data) {
+		Locale BRAZIL = new Locale("pt", "BR");
 		int dia = DateUtils.getDayOfMonth(data);
-		int mes = DateUtils.getMonth(data);
-		int ano = DateUtils.getYear(data);
 		int hora = DateUtils.getHour(data);
 		int minuto = DateUtils.getMinute(data);
-		String resultado = "Ao";
-		String[] meses = {"janeiro", "fevereiro", "março", "abril", "maio", "junho", "julho", "agosto", "setembro", "outubro", "novembro", "dezembro"};
-		
-		if(dia > 1){
-			resultado += "s ";
-		}else{
-			resultado += " ";	
-		}
-		
+		String mesExtenso = new SimpleDateFormat("MMMM", BRAZIL).format(data);
+		String anoExtenso = StringUtils.getExtenso(DateUtils.getYear(data));
+		String horaExtenso = StringUtils.getExtenso(hora);
+		String minutoExtenso = StringUtils.getExtenso(minuto);
+		String resultado = "";
+		String aos = StringUtils.tryPlural("Ao", dia);
+		String as = StringUtils.tryPlural("à", hora);
+		String horas = StringUtils.tryPlural("hora", hora);
+		String diaExtenso = dia == 1 ? "primeiro" : StringUtils.getExtenso(dia);
+		String dias = StringUtils.tryPlural("dia", dia);
+		String minutos = StringUtils.tryPlural("minuto", minuto);
+
 		//Data
-		resultado += (dia == 1 ? "primeiro" : StringUtils.getExtenso(dia)) + " dia" + (dia > 1 ? "s" : "") + " do mês de " + meses[mes] + " de " + StringUtils.getExtenso(ano) + ", ";
+		resultado += aos + " " + diaExtenso + " " + dias + " do mês de " + mesExtenso + " de " + anoExtenso + ", ";
 		//Hora
-		resultado += "à" + (hora > 1 ? "s" : "") + " " + StringUtils.getExtenso(hora) + " hora" + (hora > 1 ? "s" : "");
-		if(minuto > 0){
-			resultado += " e " + StringUtils.getExtenso(minuto) + " minuto" + (minuto > 1 ? "s" : ""); 
-		}
-		
+		resultado += as + " " + horaExtenso + " " + horas;
+		//Minutos
+		resultado += minuto > 0 ? " e " + minutoExtenso + " " + minutos : "";
+
 		return resultado;
 	}
 
