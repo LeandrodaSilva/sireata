@@ -6,14 +6,15 @@ import java.sql.SQLException;
 import java.sql.Statement;
 import java.util.Properties;
 
+import br.edu.utfpr.dv.sireata.model.Ata;
 import org.apache.tomcat.jdbc.pool.DataSource;
 import org.apache.tomcat.jdbc.pool.PoolProperties;
 
-public class ConnectionDAO {
+public class ConnectionDAO implements Cloneable{
 	
-	private String SERVER = "192.168.56.20";
+	private String SERVER = "192.168.0.168";
 	private String DATABASE = "diget";
-	private String USER = "mysql";
+	private String USER = "root";
 	private String PASSWORD = "mysql";
 	
 	private DataSource datasource = null;
@@ -59,7 +60,7 @@ public class ConnectionDAO {
 		}
 		
 		PoolProperties p = new PoolProperties();
-		p.setUrl("jdbc:" + type + "://" + server + "/" + database);
+		p.setUrl("jdbc:" + type + "://" + server + "/" + database+"?useSSL=false");
 		p.setDriverClassName(driver);
 		p.setUsername(user);
 		p.setPassword(password);
@@ -89,4 +90,8 @@ public class ConnectionDAO {
 		}
 	}
 
+	public ConnectionDAO clone() throws CloneNotSupportedException
+	{
+		return (ConnectionDAO)super.clone();
+	}
 }
