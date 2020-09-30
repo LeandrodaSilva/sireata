@@ -7,7 +7,7 @@ import java.util.List;
 
 import br.edu.utfpr.dv.sireata.util.DateUtils;
 
-public class Ata {
+public class Ata implements Cloneable {
 	
 	public enum TipoAta{
 		ORDINARIA(0), EXTRAORDINARIA(1);
@@ -202,5 +202,8 @@ public class Ata {
 		
 		return df.format(this.getData());
 	}
-
+	public Ata clone() throws CloneNotSupportedException
+	{
+		return (Ata)super.clone();
+	}
 }
